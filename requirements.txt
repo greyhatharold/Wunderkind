@@ -1,0 +1,32 @@
+# OpenAI API client library for AI functionality
+openai>=0.27.0
+
+# Text-to-Speech engine
+pyttsx3>=2.90
+
+# Speech recognition library
+SpeechRecognition>=3.8.1
+
+# Computer vision library (optimized version for Raspberry Pi)
+opencv-python>=4.8.0
+
+# Raspberry Pi GPIO control libraries
+RPi.GPIO>=0.7.0
+gpiozero>=1.6.2
+
+# MQTT client for IoT communication
+paho-mqtt>=1.6.1
+
+# HTTP library for making API requests
+requests>=2.28.0
+
+# Environment variables management
+python-dotenv>=0.19.0
+
+# Web framework for creating local web server (optional)
+flask>=2.0.0
+
+# Scientific computing library (required by OpenCV and other components)
+numpy>=1.21.0
+
+PyAudio>=0.2.11  # Required for microphone input 
