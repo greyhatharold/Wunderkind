@@ -11,10 +11,11 @@ from typing import Optional
 
 # Internal modules
 from config import load_config, get_pin_config
+from world_model import WorldModel
 
 # These will be created later
 from speech_handler import SpeechRecognizer, TextToSpeech
-from chat_handler import ChatHandler
+from chat_handler_world import ChatHandlerWorld
 # from hologram_display import HologramDisplay  # Future feature
 # from gesture_recognition import GestureRecognizer  # Future feature
 
@@ -29,15 +30,23 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+logger.info("Starting AI Assistant application")
 
 class AIAssistant:
     """Main AI Assistant class that coordinates all components."""
     
     def __init__(self):
         """Initialize the AI Assistant and its components."""
+        logger.debug("Initializing AI Assistant")
         self.config = load_config()
+        logger.debug("Configuration loaded")
         self.pin_config = get_pin_config()
+        logger.debug("Pin configuration loaded")
         self.running = False
+        
+        # Add WorldModel initialization
+        self.world_model = WorldModel()
+        logger.debug("World model initialized")
         
         # Initialize components
         try:
@@ -51,26 +60,25 @@ class AIAssistant:
         logger.info("Initializing AI Assistant components...")
         
         # Initialize speech components
+        logger.debug("Initializing speech recognizer")
         self.speech_recognizer = SpeechRecognizer(
             language=self.config["STT_LANGUAGE"],
             timeout=self.config["STT_TIMEOUT"],
             phrase_timeout=self.config["STT_PHRASE_TIMEOUT"]
         )
         
+        logger.debug("Initializing text-to-speech engine")
         self.tts_engine = TextToSpeech(
             voice_id=self.config["TTS_VOICE_ID"],
             rate=self.config["TTS_RATE"],
             volume=self.config["TTS_VOLUME"]
         )
         
-        # Initialize chat handler
-        self.chat_handler = ChatHandler(
-            config={  # Pass settings as a single config dictionary
-                "OPENAI_API_KEY": self.config["OPENAI_API_KEY"],
-                "OPENAI_MODEL": self.config["OPENAI_MODEL"],
-                "MAX_TOKENS": self.config["OPENAI_MAX_TOKENS"],
-                "TEMPERATURE": self.config["OPENAI_TEMPERATURE"]
-            }
+        # Initialize chat handler with world model
+        logger.debug("Initializing chat handler")
+        self.chat_handler = ChatHandlerWorld(
+            world_model=self.world_model,
+            config=self.config
         )
         
         # Initialize hardware components
@@ -83,20 +91,26 @@ class AIAssistant:
         try:
             try:
                 import RPi.GPIO as GPIO
+                logger.debug("Using RPi.GPIO")
             except ImportError:
                 from gpio_wrapper import GPIO
+                logger.debug("Using GPIO wrapper")
             GPIO.setmode(GPIO.BCM)
             
             # Setup LED
+            logger.debug(f"Setting up LED on pin {self.pin_config['LED_PIN']}")
             GPIO.setup(self.pin_config["LED_PIN"], GPIO.OUT)
             
             # Setup button with pull-up resistor
+            logger.debug(f"Setting up button on pin {self.pin_config['BUTTON_PIN']}")
             GPIO.setup(self.pin_config["BUTTON_PIN"], GPIO.IN, pull_up_down=GPIO.PUD_UP)
             
             # Setup motion sensor
+            logger.debug(f"Setting up motion sensor on pin {self.pin_config['MOTION_SENSOR_PIN']}")
             GPIO.setup(self.pin_config["MOTION_SENSOR_PIN"], GPIO.IN)
             
             # Setup servo
+            logger.debug(f"Setting up servo on pin {self.pin_config['SERVO_PIN']}")
             GPIO.setup(self.pin_config["SERVO_PIN"], GPIO.OUT)
             
             logger.info("Hardware components initialized successfully")
@@ -104,7 +118,7 @@ class AIAssistant:
             logger.error(f"Failed to initialize hardware: {e}")
             raise
 
-    def start(self):
+    async def start(self):
         """Start the AI Assistant's main loop."""
         self.running = True
         logger.info("AI Assistant starting...")
@@ -115,7 +129,7 @@ class AIAssistant:
         try:
             while self.running:
                 if self._check_activation():
-                    self._handle_interaction()
+                    await self._handle_interaction()
                 time.sleep(0.1)  # Prevent CPU overuse
                 
         except KeyboardInterrupt:
@@ -133,7 +147,7 @@ class AIAssistant:
             bool: True if activation criteria are met, False otherwise.
         """
         # Check for wake word
-        if self.speech_recognizer.detect_wake_word("jarvis"):
+        if self.speech_recognizer.detect_wake_word("wunderkind"):
             logger.info("Wake word detected")
             return True
         
@@ -144,36 +158,55 @@ class AIAssistant:
                 logger.info("Button press detected")
                 return True
         except ImportError:
+            logger.debug("GPIO import failed, skipping button check")
             pass
         
         return False
 
-    def _handle_interaction(self):
+    async def _handle_interaction(self):
         """Handle a single interaction with the user."""
         # Visual feedback
+        logger.debug("Setting LED on")
         self._set_led(True)
         
         # Get user input
+        logger.debug("Listening for user input")
         user_input = self.speech_recognizer.listen()
         if not user_input:
+            logger.debug("No user input received")
             self._set_led(False)
             return
         
         logger.info(f"User said: {user_input}")
         
+        # Add the interaction to world model
+        self.world_model.add_fact(f"User said: {user_input}")
+        
         # Check for shutdown command
         if "shutdown" in user_input.lower():
+            logger.info("Shutdown command received")
             self.tts_engine.speak("Shutting down. Goodbye!")
             self.shutdown()
             return
         
-        # Process the input and get response
-        response = self.chat_handler.generate_response(user_input)
+        # Get world model summary to provide context
+        context = self.world_model.get_summary()
+        
+        # Process the input and get response with context
+        logger.debug("Generating response")
+        response = await self.chat_handler.generate_response(
+            f"Context:\n{context}\n\nUser input: {user_input}"
+        )
         
         # Speak the response
+        logger.debug("Speaking response")
         self.tts_engine.speak(response)
         
+        # Add the response to world model
+        self.world_model.add_fact(f"Assistant responded: {response}")
+        
         # Visual feedback off
+        logger.debug("Setting LED off")
         self._set_led(False)
 
     def _set_led(self, state: bool):
@@ -181,7 +214,9 @@ class AIAssistant:
         try:
             import RPi.GPIO as GPIO
             GPIO.output(self.pin_config["LED_PIN"], state)
+            logger.debug(f"LED set to {state}")
         except ImportError:
+            logger.debug("GPIO import failed, skipping LED control")
             pass
 
     def shutdown(self):
@@ -193,10 +228,13 @@ class AIAssistant:
         try:
             import RPi.GPIO as GPIO
             GPIO.cleanup()
+            logger.debug("GPIO cleanup completed")
         except ImportError:
+            logger.debug("GPIO import failed, skipping cleanup")
             pass
         
         # Cleanup other components
+        logger.debug("Cleaning up components")
         self.speech_recognizer.cleanup()
         self.tts_engine.cleanup()
         self.chat_handler.cleanup()
@@ -206,8 +244,10 @@ class AIAssistant:
 
 def main():
     """Main entry point for the AI Assistant."""
+    logger.info("Starting main function")
     # Setup signal handlers
     signal.signal(signal.SIGINT, lambda sig, frame: None)  # Handle Ctrl+C gracefully
+    logger.debug("Signal handlers configured")
     
     try:
         assistant = AIAssistant()

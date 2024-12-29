@@ -20,7 +20,7 @@ DEFAULT_SETTINGS = {
     "STT_PHRASE_TIMEOUT": 1.5,  # Seconds of silence to mark end of phrase
     
     # OpenAI API settings
-    "OPENAI_MODEL": "gpt-3.5-turbo",
+    "OPENAI_MODEL": "gpt-4o",
     "OPENAI_MAX_TOKENS": 150,
     "OPENAI_TEMPERATURE": 0.7,
     
@@ -29,6 +29,10 @@ DEFAULT_SETTINGS = {
     "BUTTON_PIN": 23,           # Push button for interaction
     "MOTION_SENSOR_PIN": 24,    # PIR motion sensor
     "SERVO_PIN": 25,            # Servo motor control
+    
+    # Add any new settings needed for ChatHandlerWorld
+    "MAX_CONVERSATION_HISTORY": 10,
+    "SYSTEM_PROMPT": "You are a helpful AI assistant with access to hardware controls...",
 }
 
 def load_config() -> Dict[str, Any]:

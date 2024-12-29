@@ -8,7 +8,29 @@ import pyttsx3
 from typing import Optional, Tuple
 import logging
 
+# Configure logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Create console handler and set level
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Create file handler and set level 
+file_handler = logging.FileHandler('speech_handler.log')
+file_handler.setLevel(logging.DEBUG)
+
+# Create formatters
+console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Add formatters to handlers
+console_handler.setFormatter(console_formatter)
+file_handler.setFormatter(file_formatter)
+
+# Add handlers to logger
+logger.addHandler(console_handler)
+logger.addHandler(file_handler)
 
 class SpeechRecognizer:
     """Handles speech-to-text operations."""
@@ -29,6 +51,7 @@ class SpeechRecognizer:
         self.recognizer = sr.Recognizer()
         self.recognizer.pause_threshold = phrase_timeout
         self.recognizer.operation_timeout = timeout
+        logger.info("Initialized SpeechRecognizer")
 
     def listen(self) -> Optional[str]:
         """
@@ -50,6 +73,7 @@ class SpeechRecognizer:
                     audio,
                     language=self.language
                 )
+                logger.info(f"Successfully transcribed: '{text}'")
                 return text.lower()
 
         except sr.WaitTimeoutError:
@@ -63,7 +87,7 @@ class SpeechRecognizer:
         
         return None
 
-    def detect_wake_word(self, wake_word: str = "hey assistant") -> bool:
+    def detect_wake_word(self, wake_word: str = "hey wunderkind") -> bool:
         """
         Check for wake word in audio stream.
         
@@ -75,15 +99,22 @@ class SpeechRecognizer:
         """
         try:
             with sr.Microphone() as source:
+                logger.debug("Adjusting for ambient noise in wake word detection...")
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
+                logger.debug("Listening for wake word...")
                 audio = self.recognizer.listen(source, timeout=3)
                 text = self.recognizer.recognize_google(audio).lower()
-                return wake_word in text
-        except:
+                detected = wake_word in text
+                if detected:
+                    logger.info(f"Wake word '{wake_word}' detected")
+                return detected
+        except Exception as e:
+            logger.warning(f"Failed to detect wake word: {str(e)}")
             return False
 
     def cleanup(self):
         """Cleanup resources."""
+        logger.debug("Cleaning up SpeechRecognizer resources")
         pass  # Add cleanup if needed
 
 class TextToSpeech:
@@ -108,7 +139,9 @@ class TextToSpeech:
             for voice in voices:
                 if voice_id in voice.id:
                     self.engine.setProperty('voice', voice.id)
+                    logger.info(f"Set voice to {voice.id}")
                     break
+        logger.info("Initialized TextToSpeech")
 
     def speak(self, text: str) -> bool:
         """
@@ -121,8 +154,10 @@ class TextToSpeech:
             bool: True if successful
         """
         try:
+            logger.debug(f"Speaking: '{text}'")
             self.engine.say(text)
             self.engine.runAndWait()
+            logger.debug("Finished speaking")
             return True
         except Exception as e:
             logger.error(f"Error in speak(): {str(e)}")
@@ -131,6 +166,7 @@ class TextToSpeech:
     def cleanup(self):
         """Cleanup resources."""
         try:
+            logger.debug("Cleaning up TextToSpeech resources")
             self.engine.stop()
-        except:
-            pass 
+        except Exception as e:
+            logger.error(f"Error cleaning up TextToSpeech: {str(e)}")

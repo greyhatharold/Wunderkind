@@ -1,10 +1,10 @@
-# Holographic Jarvis AI Assistant
+# Holographic Wunderkind AI Assistant
 
-A Raspberry Pi-powered AI assistant inspired by Tony Stark's JARVIS, featuring voice interaction, LED feedback, and hardware controls. The system uses OpenAI's API for natural language processing and can respond to voice commands through speech synthesis.
+A Raspberry Pi-powered AI assistant featuring voice interaction, LED feedback, and hardware controls. The system uses OpenAI's API for natural language processing and can respond to voice commands through speech synthesis.
 
 ## Features
 
-- 🎤 Voice activation with wake word detection ("Jarvis")
+- 🎤 Voice activation with wake word detection ("Wunderkind")
 - 🤖 Natural language processing using OpenAI's API
 - 🔊 Text-to-speech response system
 - 💡 LED feedback for visual interaction
