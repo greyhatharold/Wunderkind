@@ -3,6 +3,19 @@ GPIO wrapper that allows for development on non-Raspberry Pi systems
 while maintaining the same interface as RPi.GPIO
 """
 
+class PWM:
+    """Mock PWM class for development."""
+    def __init__(self, pin, frequency):
+        self.pin = pin
+        self.frequency = frequency
+        print(f"PWM initialized on pin {pin} at {frequency}Hz")
+        
+    def start(self, duty_cycle):
+        print(f"PWM started with duty cycle {duty_cycle}%")
+        
+    def stop(self):
+        print("PWM stopped")
+
 class GPIOWrapper:
     BCM = "BCM"
     BOARD = "BOARD"
@@ -34,6 +47,11 @@ class GPIOWrapper:
     @staticmethod
     def cleanup():
         print("GPIO.cleanup()")
+
+    @staticmethod
+    def PWM(pin, frequency):
+        print(f"Creating PWM instance for pin {pin}")
+        return PWM(pin, frequency)
 
 # Usage in your main code
 try:

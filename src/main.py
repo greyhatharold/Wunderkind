@@ -9,13 +9,18 @@ import sys
 import time
 from typing import Optional
 
+# Append system root to path
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Internal modules
-from config import load_config, get_pin_config
-from world_model import WorldModel
+from src.config import load_config, get_pin_config
+from src.data.world_model import WorldModel
+from src.hardware.hardware_integration import HardwareIntegration
 
 # These will be created later
-from speech_handler import SpeechRecognizer, TextToSpeech
-from chat_handler_world import ChatHandlerWorld
+from src.speech.speech_handler import SpeechRecognizer, TextToSpeech
+from src.data.chat_handler_world import ChatHandlerWorld
 # from hologram_display import HologramDisplay  # Future feature
 # from gesture_recognition import GestureRecognizer  # Future feature
 
@@ -47,6 +52,10 @@ class AIAssistant:
         # Add WorldModel initialization
         self.world_model = WorldModel()
         logger.debug("World model initialized")
+        
+        # Initialize hardware integration
+        self.hardware = HardwareIntegration(self.world_model, self.config)
+        logger.debug("Hardware integration initialized")
         
         # Initialize components
         try:
@@ -84,6 +93,13 @@ class AIAssistant:
         # Initialize hardware components
         self._init_hardware()
         
+        # Start hardware monitoring
+        self.hardware.start_monitoring()
+        
+        # Register hardware callbacks
+        self.hardware.register_callback("button_press", self._handle_button_press)
+        self.hardware.register_callback("motion_detected", self._handle_motion_detected)
+        
         logger.info("All components initialized successfully")
 
     def _init_hardware(self):
@@ -109,9 +125,12 @@ class AIAssistant:
             logger.debug(f"Setting up motion sensor on pin {self.pin_config['MOTION_SENSOR_PIN']}")
             GPIO.setup(self.pin_config["MOTION_SENSOR_PIN"], GPIO.IN)
             
-            # Setup servo
-            logger.debug(f"Setting up servo on pin {self.pin_config['SERVO_PIN']}")
-            GPIO.setup(self.pin_config["SERVO_PIN"], GPIO.OUT)
+            # Setup servo if enabled
+            if self.config.get("ENABLE_SERVO") and self.pin_config.get("SERVO_PIN"):
+                logger.debug(f"Setting up servo on pin {self.pin_config['SERVO_PIN']}")
+                GPIO.setup(self.pin_config["SERVO_PIN"], GPIO.OUT)
+            else:
+                logger.debug("Servo functionality disabled")
             
             logger.info("Hardware components initialized successfully")
         except Exception as e:
@@ -239,8 +258,25 @@ class AIAssistant:
         self.tts_engine.cleanup()
         self.chat_handler.cleanup()
         
+        if hasattr(self, 'hardware'):
+            self.hardware.cleanup()
+        
         logger.info("Shutdown complete")
         sys.exit(0)
+
+    def _handle_button_press(self):
+        """Handle button press events."""
+        logger.info("Button press detected")
+        self.hardware.set_led(True)  # Visual feedback
+        # Additional button press handling logic
+        self.hardware.set_led(False)
+
+    def _handle_motion_detected(self):
+        """Handle motion detection events."""
+        logger.info("Motion detected")
+        self.hardware.set_led(True)
+        time.sleep(0.5)
+        self.hardware.set_led(False)
 
 def main():
     """Main entry point for the AI Assistant."""

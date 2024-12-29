@@ -11,6 +11,23 @@ from typing import Optional, Tuple, Union
 from pathlib import Path
 import time
 
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Create console handler and set level
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+# Create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Add formatter to ch
+ch.setFormatter(formatter)
+
+# Add ch to logger
+logger.addHandler(ch)
+
 class HologramDisplay:
     """
     Handles visual output for holographic or 2D displays.
@@ -49,6 +66,7 @@ class HologramDisplay:
             cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
             cv2.resizeWindow(self.window_name, *self.display_size)
             self.is_initialized = True
+            logger.info("Display initialized successfully")
         except Exception as e:
             self.logger.error(f"Failed to initialize display: {str(e)}")
 
@@ -64,6 +82,7 @@ class HologramDisplay:
             bool: True if successful, False otherwise
         """
         try:
+            logger.info(f"Displaying message: {message}")
             # Create blank canvas
             canvas = np.zeros((self.display_size[1], self.display_size[0], 3), 
                             dtype=np.uint8)
@@ -90,12 +109,15 @@ class HologramDisplay:
             start_time = time.time()
             while time.time() - start_time < duration:
                 if not self.is_initialized:
+                    logger.warning("Display not initialized")
                     return False
                     
                 cv2.imshow(self.window_name, canvas)
                 if cv2.waitKey(1) & 0xFF == 27:  # ESC key to exit
+                    logger.info("Display interrupted by user")
                     break
                     
+            logger.info("Message display completed")
             return True
             
         except Exception as e:
@@ -115,9 +137,11 @@ class HologramDisplay:
             bool: True if successful, False otherwise
         """
         try:
+            logger.info(f"Displaying image from path: {image_path}")
             # Load and resize image
             image = cv2.imread(str(image_path))
             if image is None:
+                logger.error(f"Failed to load image: {image_path}")
                 raise ValueError(f"Failed to load image: {image_path}")
                 
             image = cv2.resize(image, self.display_size)
@@ -129,12 +153,15 @@ class HologramDisplay:
             start_time = time.time()
             while time.time() - start_time < duration:
                 if not self.is_initialized:
+                    logger.warning("Display not initialized")
                     return False
                     
                 cv2.imshow(self.window_name, image)
                 if cv2.waitKey(1) & 0xFF == 27:  # ESC key to exit
+                    logger.info("Display interrupted by user")
                     break
                     
+            logger.info("Image display completed")
             return True
             
         except Exception as e:
@@ -156,6 +183,7 @@ class HologramDisplay:
             3. Handle depth information for true 3D display
             4. Implement proper transparency and lighting effects
         """
+        logger.debug("Applying hologram effects")
         # Add a slight blue tint
         image[:, :, 0] = np.clip(image[:, :, 0] * 1.2, 0, 255)  # Boost blue channel
         
@@ -170,12 +198,14 @@ class HologramDisplay:
     def cleanup(self) -> None:
         """Clean up resources and close display."""
         if self.is_initialized:
+            logger.info("Cleaning up display resources")
             cv2.destroyAllWindows()
             self.is_initialized = False
 
 def main():
     """Example usage of the HologramDisplay class."""
     try:
+        logger.info("Starting hologram display demo")
         display = HologramDisplay()
         
         # Example: Display text
@@ -186,9 +216,10 @@ def main():
         
         # Clean up
         display.cleanup()
+        logger.info("Demo completed successfully")
         
     except Exception as e:
-        print(f"Error in main(): {str(e)}")
+        logger.error(f"Error in main(): {str(e)}")
 
 if __name__ == "__main__":
     main() 

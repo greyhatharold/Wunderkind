@@ -89,3 +89,17 @@ class WorldModel:
         self.hardware_events.clear()
         self.user_preferences.clear()
         logger.info("WorldModel has been cleared.") 
+
+    def update_hardware_state(self, component: str, state: Any) -> None:
+        """
+        Update the state of a hardware component.
+        
+        Args:
+            component (str): Hardware component identifier
+            state (Any): Current state of the component
+        """
+        if "hardware_state" not in self.state:
+            self.state["hardware_state"] = {}
+        
+        self.state["hardware_state"][component] = state
+        logger.debug(f"Updated hardware state: {component} = {state}") 

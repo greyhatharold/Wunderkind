@@ -10,9 +10,9 @@ import openai
 import logging
 from typing import List, Dict, Optional
 from time import time
-from config import load_config
-from world_model import WorldModel
-from api_handler import APIHandler
+from src.config import load_config
+from src.data.world_model import WorldModel
+from src.api.api_handler import APIHandler
 
 # Configure logger
 logger = logging.getLogger(__name__)

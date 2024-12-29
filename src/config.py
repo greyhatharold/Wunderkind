@@ -28,11 +28,25 @@ DEFAULT_SETTINGS = {
     "LED_PIN": 18,              # Status LED
     "BUTTON_PIN": 23,           # Push button for interaction
     "MOTION_SENSOR_PIN": 24,    # PIR motion sensor
-    "SERVO_PIN": 25,            # Servo motor control
+    "SERVO_PIN": None,          # Optional: Servo motor control (set to None if not used)
     
     # Add any new settings needed for ChatHandlerWorld
     "MAX_CONVERSATION_HISTORY": 10,
-    "SYSTEM_PROMPT": "You are a helpful AI assistant with access to hardware controls...",
+    "SYSTEM_PROMPT": """You are a helpful AI assistant with access to hardware controls including LED lights, buttons, motion sensors, and servo motors. You can help users by:
+        - Responding to voice commands and questions
+        - Controlling connected hardware devices
+        - Maintaining context of conversations
+        - Providing helpful information and assistance
+        Please be concise but friendly in your responses.""",
+    
+    # Hardware settings
+    "HARDWARE_POLLING_INTERVAL": 0.1,  # seconds
+    "SERVO_MIN_ANGLE": 0,
+    "SERVO_MAX_ANGLE": 180,
+    "LED_FEEDBACK_DURATION": 0.5,  # seconds
+    "MOTION_DEBOUNCE_TIME": 1.0,   # seconds
+    "BUTTON_DEBOUNCE_TIME": 0.2,   # seconds
+    "ENABLE_SERVO": False,      # Set to True to enable servo functionality
 }
 
 def load_config() -> Dict[str, Any]:
